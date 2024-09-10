@@ -10,7 +10,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "Engine/App.h"
+#include "Engine/app.h"
 
 static GLFWwindow *                      g_glfwWindow;
 static std::function<void()>             g_glfwWindowRefreshCallback;
@@ -25,13 +25,13 @@ namespace VCX::Engine {
     static std::pair<std::uint32_t, std::uint32_t> g_WindowSize;
     static std::pair<std::uint32_t, std::uint32_t> g_FrameSize;
 
-    static decltype(glfwGetTime())                 g_LastTime        = 0;
-    static float                                   g_DeltaTime       = 0;
+    static decltype(glfwGetTime()) g_LastTime  = 0;
+    static float                   g_DeltaTime = 0;
 
-    static std::uint32_t                           g_FramesCnt       = 0;
-    static decltype(glfwGetTime())                 g_LastTotTime     = 0;
-    static float                                   g_FramesPerSecond = 0;
-    
+    static std::uint32_t           g_FramesCnt       = 0;
+    static decltype(glfwGetTime()) g_LastTotTime     = 0;
+    static float                   g_FramesPerSecond = 0;
+
     float                                   GetDeltaTime() { return g_DeltaTime; }
     float                                   GetFramesPerSecond() { return g_FramesPerSecond; }
     std::pair<std::uint32_t, std::uint32_t> GetCurrentWindowSize() { return g_WindowSize; }
@@ -67,9 +67,9 @@ namespace VCX::Engine::Internal {
 
     void RunApp_Init(AppContextOptions const & options) {
         RunApp_InitGLFW(options);
-        #ifndef PLATFORM_MACOSX
-            RunApp_InitGLFWWindowIcons(options);
-        #endif
+#ifndef PLATFORM_MACOSX
+        RunApp_InitGLFWWindowIcons(options);
+#endif
         RunApp_InitGLAD();
         RunApp_InitImGui(options);
     }
@@ -186,12 +186,12 @@ namespace VCX::Engine::Internal {
 
     static void RunApp_Frame(IApp & app) {
         auto const currentTime = glfwGetTime();
-        g_DeltaTime = currentTime - g_LastTime;
-        g_LastTime  = currentTime;
+        g_DeltaTime            = currentTime - g_LastTime;
+        g_LastTime             = currentTime;
         if (g_FramesCnt++; currentTime - g_LastTotTime >= 1.) {
             g_FramesPerSecond = float(g_FramesCnt / (currentTime - g_LastTotTime));
-            g_FramesCnt = 0;
-            g_LastTotTime = currentTime;
+            g_FramesCnt       = 0;
+            g_LastTotTime     = currentTime;
         }
 
         glViewport(0, 0, g_FrameSize.first, g_FrameSize.second);

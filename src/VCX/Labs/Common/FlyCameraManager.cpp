@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <imgui_internal.h>
 
 #include "Engine/app.h"
@@ -54,7 +55,7 @@ namespace VCX::Labs::Common {
 
         camera.Fovy += _deltaFOV * DampingFactor;
         camera.Fovy = std::max(MinFOV, std::min(MaxFOV, camera.Fovy));
-        
+
         const float factor = 1 - DampingFactor;
         _spDelta           = Engine::Spherical();
         _panOffset *= factor;
@@ -67,14 +68,14 @@ namespace VCX::Labs::Common {
         bool            anyHeld = false;
         bool            hover   = false;
         ImGui::ButtonBehavior(window->Rect(), window->GetID("##io"), &hover, &anyHeld);
-        bool         leftHeld       = anyHeld && ImGui::IsMouseDown(ImGuiMouseButton_Left);
-        bool         rightHeld      = anyHeld && ImGui::IsMouseDown(ImGuiMouseButton_Right);
-        ImVec2 const delta          = io.MouseDelta;
-        float        wheel          = io.MouseWheel;
-        bool         wheeling       = EnableZoom && wheel != 0.f && hover;
-        bool         moving         = (delta.x != 0.f || delta.y != 0.f) && hover;
-        float        heightNorm     = 1.f / window->Rect().GetHeight();
-        bool         rotating       = moving && leftHeld;
+        bool         leftHeld   = anyHeld && ImGui::IsMouseDown(ImGuiMouseButton_Left);
+        bool         rightHeld  = anyHeld && ImGui::IsMouseDown(ImGuiMouseButton_Right);
+        ImVec2 const delta      = io.MouseDelta;
+        float        wheel      = io.MouseWheel;
+        bool         wheeling   = EnableZoom && wheel != 0.f && hover;
+        bool         moving     = (delta.x != 0.f || delta.y != 0.f) && hover;
+        float        heightNorm = 1.f / window->Rect().GetHeight();
+        bool         rotating   = moving && leftHeld;
 
         bool panningByKeyBoard[6] = {
             ImGui::IsItemFocused() && (ImGui::IsKeyDown(ImGuiKey_W) || ImGui::IsKeyDown(ImGuiKey_UpArrow)),
@@ -128,4 +129,4 @@ namespace VCX::Labs::Common {
             _state |= StateDolly;
         }
     }
-}
+} // namespace VCX::Labs::Common

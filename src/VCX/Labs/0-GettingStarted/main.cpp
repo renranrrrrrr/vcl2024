@@ -1,5 +1,6 @@
 #include "Assets/bundled.h"
 #include "Labs/0-GettingStarted/App.h"
+#include <cstdint>
 
 int main() {
     using namespace VCX;

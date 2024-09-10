@@ -7,11 +7,11 @@
 #include <stb_image.h>
 
 #include "Assets/bundled.h"
-#include "Engine/App.h"
-#include "Engine/prelude.hpp"
+#include "Engine/app.h"
 #include "Engine/GL/Program.h"
 #include "Engine/GL/RenderItem.h"
 #include "Engine/GL/resource.hpp"
+#include "Engine/prelude.hpp"
 
 struct Vertex {
     glm::vec2 Position;
