@@ -79,12 +79,109 @@ namespace VCX::Labs::Drawing2D {
         ImageRGB &       output,
         ImageRGB const & input) {
         // your code here:
+
+        const int dither_matrix[3][3] = {
+            {6, 8, 4},
+            {1, 0, 3},
+            {5, 2, 7}
+        };
+
+        int output_x = input.GetSizeX() * 3;
+        int output_y = input.GetSizeY() * 3;
+
+        for (std::size_t x = 0; x < input.GetSizeX(); ++x) {
+            for (std::size_t y = 0; y < input.GetSizeY(); ++y) {
+                glm::vec3 color       = input.At(x, y);
+
+                float gray       = color.r;
+
+                size_t ox = 3 * x;
+                size_t oy = 3 * y;
+
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; ++j) {
+
+                        float output_color = gray > (dither_matrix[i][j] / 9.0f) ? 1 : 0;
+
+                        output.At(ox + i, oy + j) = {
+                            output_color,
+                            output_color,
+                            output_color,
+                        };
+                    }
+                }
+            }
+        }
     }
 
     void DitheringErrorDiffuse(
         ImageRGB &       output,
         ImageRGB const & input) {
         // your code here:
+
+        const std::size_t X = input.GetSizeX();
+        const std::size_t Y = input.GetSizeY();
+
+        output = input;
+
+        for (std::size_t x = 0; x < X; ++x) {
+            for (std::size_t y = 0; y < Y; ++y) {
+                glm::vec3 color = output.At(x, y);
+
+                float gray = color.r;
+                float delta = 0;
+                float new_gray;
+                float out_gray = gray > 0.5 ? 1 : 0;
+
+                output.At(x, y) = {
+                    out_gray,
+                    out_gray,
+                    out_gray,
+                };
+
+                delta = (gray - out_gray) / 16.0f;
+
+                if (x < X - 1) {
+                    new_gray = glm::vec3(output.At(x + 1, y)).r 
+                        + 7 * delta;
+                    output.At(x + 1, y) = {
+                        new_gray,
+                        new_gray,
+                        new_gray,
+                    };
+                }
+                if (y < Y - 1) {
+                    new_gray = glm::vec3(output.At(x, y + 1)).r 
+                        + 5 * delta;
+                    output.At(x, y + 1) = {
+                        new_gray,
+                        new_gray,
+                        new_gray,
+                    };
+
+                    if (x < X - 1) {
+                        new_gray = glm::vec3(output.At(x + 1, y + 1)).r 
+                            + delta;
+                        output.At(x + 1, y + 1) = {
+                            new_gray,
+                            new_gray,
+                            new_gray,
+                        };
+                    }
+
+                    if (x > 0) {
+                        new_gray = glm::vec3(output.At(x - 1, y + 1)).r 
+                            + 3 * delta;
+                        output.At(x - 1, y + 1) = {
+                            new_gray,
+                            new_gray,
+                            new_gray,
+                        };
+                    }
+
+                }
+            }
+        }
     }
 
     /******************* 2.Image Filtering *****************/
