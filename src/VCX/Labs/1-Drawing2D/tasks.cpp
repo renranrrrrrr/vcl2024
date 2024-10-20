@@ -26,6 +26,26 @@ namespace VCX::Labs::Drawing2D {
         ImageRGB &       output,
         ImageRGB const & input) {
         // your code here:
+        std::random_device rd;
+        std::default_random_engine generator(rd());
+        std::uniform_real_distribution<float> distribution(-0.5, 0.5);
+
+        for (std::size_t x = 0; x < input.GetSizeX(); ++x) {
+            for (std::size_t y = 0; y < input.GetSizeY(); ++y) {
+                glm::vec3 color = input.At(x, y);
+
+                float gray = color.r;
+                gray += distribution(generator);
+
+                float binary_value = gray > 0.5 ? 1 : 0;
+
+                output.At(x, y) = {
+                    binary_value,
+                    binary_value,
+                    binary_value,
+                };
+            }
+        }
     }
 
     void DitheringRandomBlueNoise(
@@ -33,6 +53,26 @@ namespace VCX::Labs::Drawing2D {
         ImageRGB const & input,
         ImageRGB const & noise) {
         // your code here:
+
+        for (std::size_t x = 0; x < input.GetSizeX(); ++x) {
+            for (std::size_t y = 0; y < input.GetSizeY(); ++y) {
+                glm::vec3 color       = input.At(x, y);
+                glm::vec3 noise_color = noise.At(x, y);
+
+                float gray       = color.r;
+                float noise_gray = noise_color.r;
+
+                gray += noise_gray;
+
+                float binary_value = gray > 1 ? 1 : 0;
+
+                output.At(x, y) = {
+                    binary_value,
+                    binary_value,
+                    binary_value,
+                };
+            }
+        }
     }
 
     void DitheringOrdered(
