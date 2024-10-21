@@ -1,5 +1,5 @@
 #include <random>
-
+#include <math.h>
 #include <spdlog/spdlog.h>
 
 #include "Labs/1-Drawing2D/tasks.h"
@@ -361,6 +361,62 @@ namespace VCX::Labs::Drawing2D {
         glm::ivec2 const p0,
         glm::ivec2 const p1) {
         // your code here:
+
+        int x0 = p0.x, y0 = p0.y;
+        int x1 = p1.x, y1 = p1.y;
+
+        int dx = std::abs(x1 - x0);
+        int dy = std::abs(y1 - y0);
+
+        int step_x = (x0 < x1) ? 1 : -1;
+        int step_y = (y0 < y1) ? 1 : -1;
+
+        if (x0 == x1) {
+            int dy = y0 < y1 ? 1 : -1;
+            while (y0 != y1) {
+                canvas.At(x0, y0) = color;
+                y0 += dy;
+            }
+        }
+        else if (y0 == y1) {
+            int dx = x0 < x1 ? 1 : -1;
+            while (x0 != x1) {
+                canvas.At(x0, y0) = color;
+                x0 += dx;
+            }
+        }
+        else if (dx >= dy) {
+            int F = dx / 2;
+
+            while (x0 != x1) {
+
+                canvas.At(x0, y0) = color;
+
+                F -= dy;
+                if (F < 0) {
+                    y0 += step_y;
+                    F += dx;
+                }
+                x0 += step_x;
+            }
+        }
+        else {
+            int F = dy / 2;
+
+            while (y0 != y1) {
+
+                canvas.At(x0, y0) = color;
+
+                F -= dx;
+                if (F < 0) {
+                    x0 += step_x;
+                    F += dy;
+                }
+                y0 += step_y;
+            }
+        }
+
+        canvas.At(x1, y1) = color;
     }
 
     /******************* 5. Triangle Drawing *****************/
