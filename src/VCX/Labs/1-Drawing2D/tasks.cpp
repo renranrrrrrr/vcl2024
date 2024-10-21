@@ -189,12 +189,131 @@ namespace VCX::Labs::Drawing2D {
         ImageRGB &       output,
         ImageRGB const & input) {
         // your code here:
+        const std::size_t X = input.GetSizeX();
+        const std::size_t Y = input.GetSizeY();
+ 
+        for (std::size_t x = 0; x < X; ++x) {
+            for (std::size_t y = 0; y < Y; ++y) {
+                
+                float red = 0, gre = 0, blu = 0;
+
+                if (x > 0) {
+                    if (y > 0) {
+                        red += glm::vec3(input.At(x - 1, y - 1)).r;
+                        gre += glm::vec3(input.At(x - 1, y - 1)).g;
+                        blu += glm::vec3(input.At(x - 1, y - 1)).b;
+                    }
+                    red += glm::vec3(input.At(x - 1, y)).r;
+                    gre += glm::vec3(input.At(x - 1, y)).g;
+                    blu += glm::vec3(input.At(x - 1, y)).b;
+                    if (y < Y - 1) {
+                        red += glm::vec3(input.At(x - 1, y + 1)).r;
+                        gre += glm::vec3(input.At(x - 1, y + 1)).g;
+                        blu += glm::vec3(input.At(x - 1, y + 1)).b;
+                    }
+                }
+                
+                if (y > 0) {
+                    red += glm::vec3(input.At(x, y - 1)).r;
+                    gre += glm::vec3(input.At(x, y - 1)).g;
+                    blu += glm::vec3(input.At(x, y - 1)).b;
+                }
+                red += glm::vec3(input.At(x, y)).r;
+                gre += glm::vec3(input.At(x, y)).g;
+                blu += glm::vec3(input.At(x, y)).b;
+                if (y < Y - 1) {
+                    red += glm::vec3(input.At(x, y + 1)).r;
+                    gre += glm::vec3(input.At(x, y + 1)).g;
+                    blu += glm::vec3(input.At(x, y + 1)).b;
+                }
+                
+                if (x < X - 1) {
+                    if (y > 0) {
+                        red += glm::vec3(input.At(x + 1, y - 1)).r;
+                        gre += glm::vec3(input.At(x + 1, y - 1)).g;
+                        blu += glm::vec3(input.At(x + 1, y - 1)).b;
+                    }
+                    red += glm::vec3(input.At(x + 1, y)).r;
+                    gre += glm::vec3(input.At(x + 1, y)).g;
+                    blu += glm::vec3(input.At(x + 1, y)).b;
+                    if (y < Y - 1) {
+                        red += glm::vec3(input.At(x + 1, y + 1)).r;
+                        gre += glm::vec3(input.At(x + 1, y + 1)).g;
+                        blu += glm::vec3(input.At(x + 1, y + 1)).b;
+                    }
+                }
+
+                output.At(x, y) = {
+                    red / 9.0f,
+                    gre / 9.0f,
+                    blu / 9.0f,
+                };
+            }
+        }
+
     }
+
+    //write a func to check invalid pos, or it drive me crazy
+    bool check(int const& X, int const& Y, int x, int y) {
+        return (x > 0 && y > 0 && x < X - 1 && y < Y - 1);
+    }
+
 
     void Edge(
         ImageRGB &       output,
         ImageRGB const & input) {
         // your code here:
+        const int sobelX[3][3] = {
+            {-1, 0, 1},
+            {-2, 0, 2},
+            {-1, 0, 1}
+        };
+
+        const int sobelY[3][3] = {
+            { 1,  2,  1},
+            { 0,  0,  0},
+            {-1, -2, -1}
+        };
+
+        const int X  = input.GetSizeX();
+        const int Y = input.GetSizeY();
+
+        for (std::size_t x = 0; x < X; ++x) {
+            for (std::size_t y = 0; y < Y; ++y) {
+                float rX = 0.0f, rY = 0.0f;
+                float gX = 0.0f, gY = 0.0f;
+                float bX = 0.0f, bY = 0.0f;
+
+                for (int i = -1; i <= 1; ++i) {
+                    for (int j = -1; j <= 1; ++j) {
+                        if (! check(X, Y, x + i, y + j))
+                            continue;
+                        glm::vec3 color = input.At(x + i, y + j);
+                        
+                        rX += color.r * sobelX[i + 1][j + 1];
+                        rY += color.r * sobelY[i + 1][j + 1];
+                        gX += color.g * sobelX[i + 1][j + 1];
+                        gY += color.g * sobelY[i + 1][j + 1];
+                        bX += color.b * sobelX[i + 1][j + 1];
+                        bY += color.b * sobelY[i + 1][j + 1];
+                    }
+                }
+
+                float r_magnitude = std::sqrt(rX * rX + rY * rY);
+                float g_magnitude = std::sqrt(gX * gX + gY * gY);
+                float b_magnitude = std::sqrt(bX * bX + bY * bY);
+
+                if (r_magnitude + g_magnitude + b_magnitude > 1.5)
+                    output.At(x, y) = {
+                        r_magnitude,
+                        g_magnitude,
+                        b_magnitude
+                    };
+                else
+                    output.At(x, y) = { 0, 0, 0 };
+            }
+        }
+
     }
 
     /******************* 3. Image Inpainting *****************/
