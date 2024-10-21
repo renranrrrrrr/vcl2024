@@ -427,6 +427,9 @@ namespace VCX::Labs::Drawing2D {
         glm::ivec2 const p1,
         glm::ivec2 const p2) {
         // your code here:
+        DrawLine(canvas, color, p0, p1);
+        DrawLine(canvas, color, p1, p2);
+        DrawLine(canvas, color, p2, p0);
     }
 
     /******************* 6. Image Supersampling *****************/
@@ -435,6 +438,38 @@ namespace VCX::Labs::Drawing2D {
         ImageRGB const & input,
         int              rate) {
         // your code here:
+        const int X = input.GetSizeX();
+        const int Y = input.GetSizeY();
+
+        const int width = X / rate;
+        const int height = Y / rate;
+
+        output = ImageRGB(width, height);
+
+        int R = rate * rate;
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                float red = 0, gre = 0, blu = 0;
+
+                int pos_x = x * rate;
+                int pos_y = y * rate;
+
+                for (int i = 0; i < rate; i++) {
+                    for (int j = 0; j < rate; j++) {
+                        red += glm::vec3(input.At(pos_x + i, pos_y + j)).r;
+                        gre += glm::vec3(input.At(pos_x + i, pos_y + j)).g;
+                        blu += glm::vec3(input.At(pos_x + i, pos_y + j)).b;
+                    }
+                }
+
+                output.At(x, y) = {
+                    red / R,
+                    gre / R,
+                    blu / R,
+                };
+            }
+        }
     }
 
     /******************* 7. Bezier Curve *****************/
