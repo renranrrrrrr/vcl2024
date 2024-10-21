@@ -372,20 +372,25 @@ namespace VCX::Labs::Drawing2D {
         int step_y = (y0 < y1) ? 1 : -1;
 
         if (x0 == x1) {
-            int dy = y0 < y1 ? 1 : -1;
             while (y0 != y1) {
                 canvas.At(x0, y0) = color;
-                y0 += dy;
+                y0 += step_y;
             }
         }
         else if (y0 == y1) {
-            int dx = x0 < x1 ? 1 : -1;
             while (x0 != x1) {
                 canvas.At(x0, y0) = color;
-                x0 += dx;
+                x0 += step_x;
             }
         }
-        else if (dx >= dy) {
+        else if (dx == dy) {
+            while (x0 != x1) {
+                canvas.At(x0, y0) = color;
+                x0 += step_x;
+                y0 += step_y;
+            }
+        }
+        else if (dx > dy) {
             int F = dx / 2;
 
             while (x0 != x1) {
@@ -478,6 +483,19 @@ namespace VCX::Labs::Drawing2D {
         std::span<glm::vec2> points,
         float const          t) {
         // your code here:
-        return glm::vec2 {0, 0};
+        int num = points.size();
+
+        if (num == 1) {
+            return points[0];
+        }
+
+        std::vector<glm::vec2> new_points(num - 1);
+        float const s = 1 - t;
+
+        for (int i = 0; i < num - 1; i++) {
+            new_points[i] = s * points[i] + t * points[i + 1];
+        }
+
+        return CalculateBezierPoint(std::span<glm::vec2>(new_points), t);
     }
 } // namespace VCX::Labs::Drawing2D
