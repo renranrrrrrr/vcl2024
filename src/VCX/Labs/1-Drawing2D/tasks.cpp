@@ -331,10 +331,14 @@ namespace VCX::Labs::Drawing2D {
         for (std::size_t y = 0; y < height; ++y) {
             // set boundary for (0, y), your code: g[y * width] = ?
             // set boundary for (width - 1, y), your code: g[y * width + width - 1] = ?
+            g[y * width]             = inputBack.At(offset.x, offset.y + y) - inputFront.At(0, y);
+            g[y * width + width - 1] = inputBack.At(offset.x + width - 1, offset.y + y) - inputFront.At(width - 1, y);
         }
         for (std::size_t x = 0; x < width; ++x) {
             // set boundary for (x, 0), your code: g[x] = ?
             // set boundary for (x, height - 1), your code: g[(height - 1) * width + x] = ?
+            g[x]                        = inputBack.At(offset.x + x, offset.y) - inputFront.At(x, 0);
+            g[(height - 1) * width + x] = inputBack.At(offset.x + x, offset.y + height - 1) - inputFront.At(x, height - 1);
         }
 
         // Jacobi iteration, solve Ag = b
@@ -425,6 +429,24 @@ namespace VCX::Labs::Drawing2D {
     }
 
     /******************* 5. Triangle Drawing *****************/
+    void DrawHorizontalLine(
+        ImageRGB &        canvas,
+        glm::vec3 const & color,
+        int               y, 
+        int               x0, 
+        int               x1){
+
+        if (x0 > x1) {
+            for (int x = x1; x <= x0; ++x)
+                canvas.At(x, y) = color;
+        } else {
+            for (int x = x0; x <= x1; ++x)
+                canvas.At(x, y) = color;
+        }
+
+        return;
+    }
+
     void DrawTriangleFilled(
         ImageRGB &       canvas,
         glm::vec3 const  color,
@@ -435,6 +457,43 @@ namespace VCX::Labs::Drawing2D {
         DrawLine(canvas, color, p0, p1);
         DrawLine(canvas, color, p1, p2);
         DrawLine(canvas, color, p2, p0);
+
+        if ((p0.x == p1.x && p0.x == p2.x) || (p0.y == p1.y && p0.y == p2.y)
+            || (p0.x - p1.x) * (p0.y - p2.y) == (p0.x - p2.x) * (p0.y - p1.y)
+            || (p0.x - p1.x) * (p0.y - p2.y) == (p0.x - p2.x) * (p1.y - p0.y))
+            return;
+
+        glm::vec2 point0 = p0;
+        glm::vec2 point1 = p1;
+        glm::vec2 point2 = p2;
+
+        if (point0.y < point1.y) {
+            glm::ivec2 tmp = point0;
+            point0         = point1;
+            point1         = tmp;
+        }
+        if (point0.y < point2.y) {
+            glm::ivec2 tmp = point0;
+            point0         = point2;
+            point2         = tmp;
+        }
+        if (point1.y < point2.y) {
+            glm::ivec2 tmp = point1;
+            point1            = point2;
+            point2            = tmp;
+        }
+
+        int   x_1 = point0.x, x_2 = point0.x;
+        float err_x1 = 0, err_x2 = 0;
+
+        float dx_01 = point0.x - point1.x;
+        float dx_02 = point0.x - point2.x;
+        float dx_12 = point1.x - point2.x;
+        float dy_01 = point0.y - point1.y;
+        float dy_02 = point0.y - point2.y;
+        float dy_12 = point1.y - point2.y;
+        
+        return;
     }
 
     /******************* 6. Image Supersampling *****************/
@@ -443,36 +502,30 @@ namespace VCX::Labs::Drawing2D {
         ImageRGB const & input,
         int              rate) {
         // your code here:
-        const int X = input.GetSizeX();
-        const int Y = input.GetSizeY();
+        const int in_X  = input.GetSizeX();
+        const int in_Y  = input.GetSizeY();
+        const int out_X = output.GetSizeX();
+        const int out_Y = output.GetSizeY();
+        const int R     = rate * rate;
 
-        const int width = X / rate;
-        const int height = Y / rate;
+        for (int x = 0; x < out_X; x++) {
+            for (int y = 0; y < out_Y; y++) {
+                glm::vec3 color = { 0, 0, 0 };
 
-        output = ImageRGB(width, height);
-
-        int R = rate * rate;
-
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                float red = 0, gre = 0, blu = 0;
-
-                int pos_x = x * rate;
-                int pos_y = y * rate;
+                int pos_x = x * in_X / out_X;
+                int pos_y = y * in_Y / out_Y;
 
                 for (int i = 0; i < rate; i++) {
                     for (int j = 0; j < rate; j++) {
-                        red += glm::vec3(input.At(pos_x + i, pos_y + j)).r;
-                        gre += glm::vec3(input.At(pos_x + i, pos_y + j)).g;
-                        blu += glm::vec3(input.At(pos_x + i, pos_y + j)).b;
+                        if (pos_x + i < in_X && pos_y + j < in_Y) {
+                            color += input.At(pos_x + i, pos_y + j);
+                        }
                     }
                 }
 
-                output.At(x, y) = {
-                    red / R,
-                    gre / R,
-                    blu / R,
-                };
+                color /= float(R);
+
+                output.At(x, y) = color;
             }
         }
     }
