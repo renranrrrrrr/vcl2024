@@ -467,31 +467,58 @@ namespace VCX::Labs::Drawing2D {
         glm::vec2 point1 = p1;
         glm::vec2 point2 = p2;
 
-        if (point0.y < point1.y) {
-            glm::ivec2 tmp = point0;
-            point0         = point1;
-            point1         = tmp;
-        }
-        if (point0.y < point2.y) {
-            glm::ivec2 tmp = point0;
-            point0         = point2;
-            point2         = tmp;
-        }
-        if (point1.y < point2.y) {
-            glm::ivec2 tmp = point1;
-            point1            = point2;
-            point2            = tmp;
+        if (point0.y < point1.y) std::swap(point0, point1);
+        if (point0.y < point2.y) std::swap(point0, point2);
+        if (point1.y < point2.y) std::swap(point1, point2);
+
+        size_t x0 = point0.x;
+        size_t y0 = point0.y;
+        size_t x1 = point1.x;
+        size_t y1 = point1.y;
+        size_t x2 = point2.x;
+        size_t y2 = point2.y;
+
+        size_t x_tmp = ((float) x2 - x0) / ((float) y2 - y0) * (y1 - y2) + x2;
+        size_t xL    = x1 < x_tmp ? x1 : x_tmp;
+        size_t xR    = x1 > x_tmp ? x1 : x_tmp;
+
+        int    dxL   = (int) x2 - xL;
+        int    dyL   = (int) y2 - y1;
+        int    dxR   = (int) x2 - xR;
+        int    dyR   = (int) y2 - y1;
+
+        if (dyL != 0 && dyR != 0) {
+            float dxdyL = (float) dxL / dyL;
+            float dxdyR = (float) dxR / dyR;
+            float xl = x2;
+            float xr = x2;
+            for (size_t y = y2; y <= y1; ++y) {
+                for (size_t x = xl; x <= xr; ++x) {
+                    canvas.At(x, y) = color;
+                }
+                xl += dxdyL;
+                xr += dxdyR;
+            }
         }
 
-        int   x_1 = point0.x, x_2 = point0.x;
-        float err_x1 = 0, err_x2 = 0;
-
-        float dx_01 = point0.x - point1.x;
-        float dx_02 = point0.x - point2.x;
-        float dx_12 = point1.x - point2.x;
-        float dy_01 = point0.y - point1.y;
-        float dy_02 = point0.y - point2.y;
-        float dy_12 = point1.y - point2.y;
+        dxL = (int) x0 - xL;
+        dyL = (int) y0 - y1;
+        dxR = (int) x0 - xR;
+        dyR = (int) y0 - y1;
+        
+        if (dyL != 0 && dyR != 0) {
+            float dxdyL = (float) dxL / dyL;
+            float dxdyR = (float) dxR / dyR;
+            float xl    = x0;
+            float xr    = x0;
+            for (size_t y = y0; y >= y1; --y) {
+                for (size_t x = xl; x <= xr; ++x) {
+                    canvas.At(x, y) = color;
+                }
+                xl -= dxdyL;
+                xr -= dxdyR;
+            }
+        }
         
         return;
     }
