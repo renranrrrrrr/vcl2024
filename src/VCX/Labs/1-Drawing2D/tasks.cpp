@@ -429,24 +429,6 @@ namespace VCX::Labs::Drawing2D {
     }
 
     /******************* 5. Triangle Drawing *****************/
-    void DrawHorizontalLine(
-        ImageRGB &        canvas,
-        glm::vec3 const & color,
-        int               y, 
-        int               x0, 
-        int               x1){
-
-        if (x0 > x1) {
-            for (int x = x1; x <= x0; ++x)
-                canvas.At(x, y) = color;
-        } else {
-            for (int x = x0; x <= x1; ++x)
-                canvas.At(x, y) = color;
-        }
-
-        return;
-    }
-
     void DrawTriangleFilled(
         ImageRGB &       canvas,
         glm::vec3 const  color,
@@ -478,9 +460,9 @@ namespace VCX::Labs::Drawing2D {
         size_t x2 = point2.x;
         size_t y2 = point2.y;
 
-        size_t x_tmp = ((float) x2 - x0) / ((float) y2 - y0) * (y1 - y2) + x2;
-        size_t xL    = x1 < x_tmp ? x1 : x_tmp;
-        size_t xR    = x1 > x_tmp ? x1 : x_tmp;
+        size_t x_m = ((float) x2 - x0) / ((float) y2 - y0) * (y1 - y2) + x2;
+        size_t xL    = x1 < x_m ? x1 : x_m;
+        size_t xR    = x1 > x_m ? x1 : x_m;
 
         int    dxL   = (int) x2 - xL;
         int    dyL   = (int) y2 - y1;
@@ -492,6 +474,7 @@ namespace VCX::Labs::Drawing2D {
             float dxdyR = (float) dxR / dyR;
             float xl = x2;
             float xr = x2;
+
             for (size_t y = y2; y <= y1; ++y) {
                 for (size_t x = xl; x <= xr; ++x) {
                     canvas.At(x, y) = color;
