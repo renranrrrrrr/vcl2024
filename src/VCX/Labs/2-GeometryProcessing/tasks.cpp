@@ -35,6 +35,22 @@ namespace VCX::Labs::GeometryProcessing {
                 auto v           = G.Vertex(i);
                 auto neighbors   = v->Neighbors();
                 // your code here:
+                glm::vec3 curr_v = {};
+                int       u = 16;
+                int       num = neighbors.size();
+                if (num != 3)
+                    u = 8 * num;
+
+                curr_v.x = (float) ((u - num * 3) * prev_mesh.Positions[i].x) / u;
+                curr_v.y = (float) ((u - num * 3) * prev_mesh.Positions[i].y) / u;
+                curr_v.z = (float) ((u - num * 3) * prev_mesh.Positions[i].z) / u;
+
+                for (int j = 0; j < num; ++j) {
+                    curr_v.x += (float) 3 * prev_mesh.Positions[neighbors[j]].x / u;
+                    curr_v.y += (float) 3 * prev_mesh.Positions[neighbors[j]].y / u;
+                    curr_v.z += (float) 3 * prev_mesh.Positions[neighbors[j]].z / u;
+                }
+                curr_mesh.Positions.push_back(curr_v);
             }
             // We create an array to store indices of the newly generated vertices.
             // Note: newIndices[i][j] is the index of vertex generated on the "opposite edge" of j-th
@@ -49,6 +65,13 @@ namespace VCX::Labs::GeometryProcessing {
                 if (! eTwin) {
                     // When there is no twin halfedge (so, e is a boundary edge):
                     // your code here: generate the new vertex and add it into curr_mesh.Positions.
+                    glm::vec3 curr_v = {};
+                    int       e_from = e->From();
+                    int       e_to   = e->To();
+                    curr_v.x         = (float) (prev_mesh.Positions[e_from].x + prev_mesh.Positions[e_to].x) / 2;
+                    curr_v.y         = (float) (prev_mesh.Positions[e_from].y + prev_mesh.Positions[e_to].y) / 2;
+                    curr_v.z         = (float) (prev_mesh.Positions[e_from].z + prev_mesh.Positions[e_to].z) / 2;
+                    curr_mesh.Positions.push_back(curr_v);
                 } else {
                     // When the twin halfedge exists, we should also record:
                     //     newIndices[face index][vertex index] = index of the newly generated vertex
@@ -56,6 +79,21 @@ namespace VCX::Labs::GeometryProcessing {
                     //     we have to record twice.
                     newIndices[G.IndexOf(eTwin->Face())][e->TwinEdge()->EdgeLabel()] = curr_mesh.Positions.size();
                     // your code here: generate the new vertex and add it into curr_mesh.Positions.
+                    glm::vec3 curr_v = {};
+                    int       e_from = e->From();
+                    int       e_to   = e->To();
+
+                    curr_v.x = (float) (3 * (prev_mesh.Positions[e_from].x + prev_mesh.Positions[e_to].x)
+                                        + prev_mesh.Positions[e->NextEdge()->To()].x + prev_mesh.Positions[e->TwinEdge()->NextEdge()->To()].x)
+                        / 8;
+                    curr_v.y = (float) (3 * (prev_mesh.Positions[e_from].y + prev_mesh.Positions[e_to].y)
+                                        + prev_mesh.Positions[e->NextEdge()->To()].y + prev_mesh.Positions[e->TwinEdge()->NextEdge()->To()].y)
+                        / 8;
+                    curr_v.z = (float) (3 * (prev_mesh.Positions[e_from].z + prev_mesh.Positions[e_to].z)
+                                        + prev_mesh.Positions[e->NextEdge()->To()].z + prev_mesh.Positions[e->TwinEdge()->NextEdge()->To()].z)
+                        / 8;
+
+                    curr_mesh.Positions.push_back(curr_v);
                 }
             }
 
@@ -75,6 +113,10 @@ namespace VCX::Labs::GeometryProcessing {
                 // toInsert[i][j] stores the j-th vertex index of the i-th sub-face.
                 std::uint32_t toInsert[4][3] = {
                     // your code here:
+                    {m2, m1, v0},
+                    {m0, m1, m2},
+                    {m2, v1, m0},
+                    {m0, v2, m1},
                 };
                 // Do insertion.
                 curr_mesh.Indices.insert(
@@ -110,10 +152,43 @@ namespace VCX::Labs::GeometryProcessing {
 
         // Set boundary UVs for boundary vertices.
         // your code here: directly edit output.TexCoords
+        float x_max = input.Positions[0].x;
+        float y_max = input.Positions[0].y;
+        float x_min = input.Positions[0].x;
+        float y_min = input.Positions[0].y;
+
+        for (int i = 0; i < G.NumOfVertices(); ++i) {
+            x_max = input.Positions[i].x > x_max ? input.Positions[i].x : x_max;
+            x_min = input.Positions[i].x < x_min ? input.Positions[i].x : x_min;
+            y_max = input.Positions[i].y > y_max ? input.Positions[i].y : y_max;
+            y_min = input.Positions[i].y < y_min ? input.Positions[i].y : y_min;
+        }
+
+        for (int i = 0; i < G.NumOfVertices(); ++i) {
+            if (G.Vertex(i)->OnBoundary()) {
+                output.TexCoords[i].x = (input.Positions[i].x - x_min) / (x_max - x_min);
+                output.TexCoords[i].y = (input.Positions[i].y - y_min) / (y_max - y_min);
+            }
+        }
 
         // Solve equation via Gauss-Seidel Iterative Method.
         for (int k = 0; k < numIterations; ++k) {
             // your code here:
+            for (int i = 0; i < G.NumOfVertices(); ++i) {
+                if (G.Vertex(i)->OnBoundary())
+                    continue;
+
+                auto neighbors = G.Vertex(i)->Neighbors();
+                auto num       = neighbors.size();
+                float x_new     = 0;
+                float y_new     = 0;
+                for (int j = 0; j < num; ++j) {
+                    x_new += output.TexCoords[neighbors[j]].x;
+                    y_new += output.TexCoords[neighbors[j]].y;
+                }
+                output.TexCoords[i].x =(float) x_new / num;
+                output.TexCoords[i].y =(float) y_new / num;
+            }
         }
     }
 
