@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <cmath>
 
 #include <glm/gtc/matrix_inverse.hpp>
 #include <spdlog/spdlog.h>
@@ -344,7 +345,16 @@ namespace VCX::Labs::GeometryProcessing {
         static constexpr auto GetCotangent {
             [] (glm::vec3 vAngle, glm::vec3 v1, glm::vec3 v2) -> float {
                 // your code here:
-                return 0.0f;
+                glm::vec e1 = v1 - vAngle;
+                glm::vec e2 = v2 - vAngle;
+
+                double dot = glm::dot(e1, e2);
+                double cross = glm::length(glm::cross(e1, e2));
+                
+                if (cross < 1e-4 || dot * cross < 0)
+                    return 0.0f;
+                else return (dot / cross);
+                
             }
         };
 
@@ -365,6 +375,39 @@ namespace VCX::Labs::GeometryProcessing {
             Engine::SurfaceMesh curr_mesh = prev_mesh;
             for (std::size_t i = 0; i < input.Positions.size(); ++i) {
                 // your code here: curr_mesh.Positions[i] = ...
+                
+                auto  neighbors = G.Vertex(i)->Neighbors();
+                auto  num       = neighbors.size();
+                float x_new     = 0;
+                float y_new     = 0;
+                float z_new     = 0;
+                
+                if (useUniformWeight) {
+                    for (int j = 0; j < num; ++j) {
+                        x_new += prev_mesh.Positions[neighbors[j]].x;
+                        y_new += prev_mesh.Positions[neighbors[j]].y;
+                        z_new += prev_mesh.Positions[neighbors[j]].z;
+                    }
+
+                    curr_mesh.Positions[i].x = (float) ((1 - lambda) * prev_mesh.Positions[i].x + lambda * x_new / num);
+                    curr_mesh.Positions[i].y = (float) ((1 - lambda) * prev_mesh.Positions[i].y + lambda * y_new / num);
+                    curr_mesh.Positions[i].z = (float) ((1 - lambda) * prev_mesh.Positions[i].z + lambda * z_new / num);
+                }
+                else {
+                    float cot_sum = 0;
+                    for (int j = 0; j < num; ++j) {
+                        float cot = GetCotangent(prev_mesh.Positions[i], prev_mesh.Positions[neighbors[(j - 1) % num]], prev_mesh.Positions[neighbors[j]])
+                            + GetCotangent(prev_mesh.Positions[i], prev_mesh.Positions[(j + 1) % num], prev_mesh.Positions[neighbors[j]]);
+                        x_new += prev_mesh.Positions[neighbors[j]].x * cot;
+                        y_new += prev_mesh.Positions[neighbors[j]].y * cot;
+                        z_new += prev_mesh.Positions[neighbors[j]].z * cot;
+                        cot_sum += cot;
+                    }
+
+                    curr_mesh.Positions[i].x = (float) ((1 - lambda) * prev_mesh.Positions[i].x + lambda * x_new / cot_sum);
+                    curr_mesh.Positions[i].y = (float) ((1 - lambda) * prev_mesh.Positions[i].y + lambda * y_new / cot_sum);
+                    curr_mesh.Positions[i].z = (float) ((1 - lambda) * prev_mesh.Positions[i].z + lambda * z_new / cot_sum);
+                }
             }
             // Move curr_mesh to prev_mesh.
             prev_mesh.Swap(curr_mesh);
