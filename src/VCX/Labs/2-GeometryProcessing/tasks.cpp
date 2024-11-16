@@ -36,21 +36,22 @@ namespace VCX::Labs::GeometryProcessing {
                 auto v           = G.Vertex(i);
                 auto neighbors   = v->Neighbors();
                 // your code here:
-                glm::vec3 curr_v = {};
-                int       u = 16;
-                int       num = neighbors.size();
-                if (num != 3)
-                    u = 8 * num;
-
-                curr_v.x = (float) ((u - num * 3) * prev_mesh.Positions[i].x) / u;
-                curr_v.y = (float) ((u - num * 3) * prev_mesh.Positions[i].y) / u;
-                curr_v.z = (float) ((u - num * 3) * prev_mesh.Positions[i].z) / u;
-
-                for (int j = 0; j < num; ++j) {
-                    curr_v.x += (float) 3 * prev_mesh.Positions[neighbors[j]].x / u;
-                    curr_v.y += (float) 3 * prev_mesh.Positions[neighbors[j]].y / u;
-                    curr_v.z += (float) 3 * prev_mesh.Positions[neighbors[j]].z / u;
+                glm::vec3 curr_v(0);
+                std::size_t       num = neighbors.size();
+                
+                if (num == 3) {
+                    curr_v = glm::vec3(1 - 9.0f / 16.0f) * prev_mesh.Positions[i];
+                    for (auto point : neighbors) {
+                        curr_v += prev_mesh.Positions[point] * glm::vec3(3.0f / 16.0f);
+                    }
                 }
+                else {
+                    curr_v = glm::vec3(0.625f) * prev_mesh.Positions[i];
+                    for (auto point : neighbors) {
+                        curr_v += prev_mesh.Positions[point] * glm::vec3(0.375f / num);
+                    }
+                }
+
                 curr_mesh.Positions.push_back(curr_v);
             }
             // We create an array to store indices of the newly generated vertices.
@@ -66,12 +67,7 @@ namespace VCX::Labs::GeometryProcessing {
                 if (! eTwin) {
                     // When there is no twin halfedge (so, e is a boundary edge):
                     // your code here: generate the new vertex and add it into curr_mesh.Positions.
-                    glm::vec3 curr_v = {};
-                    int       e_from = e->From();
-                    int       e_to   = e->To();
-                    curr_v.x         = (float) (prev_mesh.Positions[e_from].x + prev_mesh.Positions[e_to].x) / 2;
-                    curr_v.y         = (float) (prev_mesh.Positions[e_from].y + prev_mesh.Positions[e_to].y) / 2;
-                    curr_v.z         = (float) (prev_mesh.Positions[e_from].z + prev_mesh.Positions[e_to].z) / 2;
+                    glm::vec3 curr_v = glm::vec3(0.5f) * (prev_mesh.Positions[e->From()] + prev_mesh.Positions[e->To()]);
                     curr_mesh.Positions.push_back(curr_v);
                 } else {
                     // When the twin halfedge exists, we should also record:
@@ -80,19 +76,8 @@ namespace VCX::Labs::GeometryProcessing {
                     //     we have to record twice.
                     newIndices[G.IndexOf(eTwin->Face())][e->TwinEdge()->EdgeLabel()] = curr_mesh.Positions.size();
                     // your code here: generate the new vertex and add it into curr_mesh.Positions.
-                    glm::vec3 curr_v = {};
-                    int       e_from = e->From();
-                    int       e_to   = e->To();
-
-                    curr_v.x = (float) (3 * (prev_mesh.Positions[e_from].x + prev_mesh.Positions[e_to].x)
-                                        + prev_mesh.Positions[e->NextEdge()->To()].x + prev_mesh.Positions[e->TwinEdge()->NextEdge()->To()].x)
-                        / 8;
-                    curr_v.y = (float) (3 * (prev_mesh.Positions[e_from].y + prev_mesh.Positions[e_to].y)
-                                        + prev_mesh.Positions[e->NextEdge()->To()].y + prev_mesh.Positions[e->TwinEdge()->NextEdge()->To()].y)
-                        / 8;
-                    curr_v.z = (float) (3 * (prev_mesh.Positions[e_from].z + prev_mesh.Positions[e_to].z)
-                                        + prev_mesh.Positions[e->NextEdge()->To()].z + prev_mesh.Positions[e->TwinEdge()->NextEdge()->To()].z)
-                        / 8;
+                    glm::vec3 curr_v = glm::vec3(0.375f) * (prev_mesh.Positions[e->From()] + prev_mesh.Positions[e->To()])
+                        + glm::vec3(0.125f) * (prev_mesh.Positions[e->OppositeVertex()] + prev_mesh.Positions[e->TwinOppositeVertex()]);
 
                     curr_mesh.Positions.push_back(curr_v);
                 }
@@ -114,10 +99,10 @@ namespace VCX::Labs::GeometryProcessing {
                 // toInsert[i][j] stores the j-th vertex index of the i-th sub-face.
                 std::uint32_t toInsert[4][3] = {
                     // your code here:
-                    {m2, m1, v0},
-                    {m0, m1, m2},
-                    {m2, v1, m0},
-                    {m0, v2, m1},
+                    {v0, m2, m1},
+                    {v1, m0, m2},
+                    {v2, m1, m0},
+                    {m2, m0, m1}
                 };
                 // Do insertion.
                 curr_mesh.Indices.insert(
@@ -215,6 +200,21 @@ namespace VCX::Labs::GeometryProcessing {
             [&G, &output] (DCEL::Triangle const * f) -> glm::mat4 {
                 glm::mat4 Kp;
                 // your code here:
+                glm::vec3 v0 = output.Positions[f->VertexIndex(0)];
+                glm::vec3 v1 = output.Positions[f->VertexIndex(1)];
+                glm::vec3 v2 = output.Positions[f->VertexIndex(2)];
+
+                glm::vec3 e1 = v1 - v0;
+                glm::vec3 e2 = v2 - v0;
+
+                glm::vec3 n = glm::normalize(glm::cross(e1, e2));
+
+                float d = 0.0f - glm::dot(v0, n);
+
+                glm::vec4 plane { n, d };
+
+                Kp = glm::outerProduct(plane, plane);
+
                 return Kp;
             }
         };
@@ -235,7 +235,27 @@ namespace VCX::Labs::GeometryProcessing {
                 glm::mat4 const & Q
             ) -> ContractionPair {
                 // your code here:
-                return {};
+
+                glm::mat4 P = Q;
+                P[0][3]     = 0.0f;
+                P[1][3]     = 0.0f;
+                P[2][3]     = 0.0f;
+                P[3][3]     = 1.0f;
+                glm::vec4 v(0);
+                glm::vec4 v1 = { p1, 1.0f };
+                glm::vec4 v2 = { p2, 1.0f };
+
+                if (glm::determinant(P) < 0.001) {
+                    v = (v1 + v2) / 2.0f;
+                } else {
+                    v = glm::inverse(P)[3];
+                }
+
+                glm::vec4 tmp = Q * v;
+
+                float cost = glm::dot(v, tmp);
+
+                return { edge, v, cost};
             }
         };
 
@@ -322,12 +342,24 @@ namespace VCX::Labs::GeometryProcessing {
                 //        update Q matrix of each vertex on the ring (update $Qv$).
                 //     3. Update Q matrix of vertex v1 as well (update $Qv$).
                 //     4. Update $Kf$.
+                auto tf  = e->Face();
+                glm::mat4 nQ = UpdateQ(tf);
+
+                auto delta = nQ - Kf[G.IndexOf(tf)];
+                Qv[e->From()] += delta;
+                Qv[e->To()] += delta;
+                
+                Qv[v1] += nQ;
+
+                Kf[G.IndexOf(tf)] = nQ;
             }
 
             // Finally, as the Q matrix changed, we should update the relative $ContractionPair$ in $pairs$.
             // Any pair with the Q matrix of its endpoints changed, should be remade by $MakePair$.
             // your code here:
-
+            for (auto e : ring) {
+                pairs[pair_map[G.IndexOf(e->NextEdge())]] = MakePair(e->NextEdge(), input.Positions[e->NextEdge()->From()], input.Positions[e->NextEdge()->To()], Qv[e->NextEdge()->From()] + Qv[e->NextEdge()->To()]);
+            }
         }
 
         // In the end, we check if the result mesh is watertight and manifold.
@@ -421,5 +453,81 @@ namespace VCX::Labs::GeometryProcessing {
     /******************* 5. Marching Cubes *****************/
     void MarchingCubes(Engine::SurfaceMesh & output, const std::function<float(const glm::vec3 &)> & sdf, const glm::vec3 & grid_min, const float dx, const int n) {
         // your code here:
+        auto unit {
+            [](int n) -> glm::vec3 {
+                switch (n) {
+                case 0:
+                    return glm::vec3(1, 0, 0);
+                    break;
+                case 1:
+                    return glm::vec3(0, 1, 0);
+                    break;
+                case 2:
+                    return glm::vec3(0, 0, 1);
+                    break;
+                default: return glm::vec3(1, 0, 0);
+                }
+            }
+        };
+        std::vector<glm::vec3> edge(3 * (n + 1) * (n + 1) * (n + 1), glm::vec3(0));
+        std::vector<int>       edgeforidx(3 * (n + 1) * (n + 1) * (n + 1), -1);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                for (int k = 0; k < n; ++k) {
+                    glm::vec3              basePoint = grid_min + dx * glm::vec3(k, j, i);
+                    std::vector<glm::vec3> cube      = {
+                        basePoint,
+                        basePoint + glm::vec3(dx, 0, 0),
+                        basePoint + glm::vec3(0, dx, 0),
+                        basePoint + glm::vec3(dx, dx, 0),
+                        basePoint + glm::vec3(0, 0, dx),
+                        basePoint + glm::vec3(dx, 0, dx),
+                        basePoint + glm::vec3(0, dx, dx),
+                        basePoint + glm::vec3(dx, dx, dx)
+                    };
+                    int              baseEdgeidx = i * 3 * (n + 1) * (n + 1) + j * 3 * (n + 1) + 3 * k;
+                    std::vector<int> edgeMap     = { baseEdgeidx,
+                                                     baseEdgeidx + 3 * (n + 1),
+                                                     baseEdgeidx + 3 * (n + 1) * (n + 1),
+                                                     baseEdgeidx + 3 * (n + 1) * (n + 2),
+                                                     baseEdgeidx + 1,
+                                                     baseEdgeidx + 1 + 3 * (n + 1) * (n + 1),
+                                                     baseEdgeidx + 4,
+                                                     baseEdgeidx + 4 + 3 * (n + 1) * (n + 1),
+                                                     baseEdgeidx + 2,
+                                                     baseEdgeidx + 5,
+                                                     baseEdgeidx + 2 + 3 * (n + 1),
+                                                     baseEdgeidx + 3 * (n + 1) + 5 };
+                    int              v           = 0;
+                    for (int i = 0; i < 8; ++i) {
+                        if (sdf(cube[i]) > 0) {
+                            v += (1 << i);
+                        }
+                    }
+                    unsigned int edgeRes = c_EdgeStateTable[v & 0xff];
+                    for (int j = 0; j < 12; ++j) {
+                        if (1 & (edgeRes >> j)) {
+                            if (edgeforidx[edgeMap[j]] == -1) {
+                                glm::vec3 src          = cube[0] + dx * (j & 1) * unit(((j >> 2) + 1) % 3) + dx * ((j >> 1) & 1) * unit(((j >> 2) + 2) % 3);
+                                glm::vec3 dst          = src + dx * unit(j >> 2);
+                                glm::vec3 point        = (sdf(dst) / (sdf(dst) - sdf(src))) * src + (-sdf(src) / (sdf(dst) - sdf(src))) * dst;
+                                edgeforidx[edgeMap[j]] = output.Positions.size();
+                                output.Positions.push_back(point);
+                            }
+                        }
+                    }
+                    int ptr = 0;
+                    while (c_EdgeOrdsTable[v][ptr] != -1) {
+                        output.Indices.push_back(edgeforidx[edgeMap[c_EdgeOrdsTable[v][ptr]]]);
+                        output.Indices.push_back(edgeforidx[edgeMap[c_EdgeOrdsTable[v][ptr + 1]]]);
+                        output.Indices.push_back(edgeforidx[edgeMap[c_EdgeOrdsTable[v][ptr + 2]]]);
+                        output.Indices.push_back(edgeforidx[edgeMap[c_EdgeOrdsTable[v][ptr + 2]]]);
+                        output.Indices.push_back(edgeforidx[edgeMap[c_EdgeOrdsTable[v][ptr + 1]]]);
+                        output.Indices.push_back(edgeforidx[edgeMap[c_EdgeOrdsTable[v][ptr]]]);
+                        ptr += 3;
+                    }
+                }
+            }
+        }
     }
 } // namespace VCX::Labs::GeometryProcessing
