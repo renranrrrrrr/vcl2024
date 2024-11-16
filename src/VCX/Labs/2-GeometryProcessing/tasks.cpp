@@ -40,13 +40,13 @@ namespace VCX::Labs::GeometryProcessing {
                 std::size_t       num = neighbors.size();
                 
                 if (num == 3) {
-                    curr_v = glm::vec3(1 - 9.0f / 16.0f) * prev_mesh.Positions[i];
+                    curr_v = prev_mesh.Positions[i] * glm::vec3(1 - 9.0f / 16.0f);
                     for (auto point : neighbors) {
                         curr_v += prev_mesh.Positions[point] * glm::vec3(3.0f / 16.0f);
                     }
                 }
                 else {
-                    curr_v = glm::vec3(0.625f) * prev_mesh.Positions[i];
+                    curr_v = prev_mesh.Positions[i] * glm::vec3(0.625f);
                     for (auto point : neighbors) {
                         curr_v += prev_mesh.Positions[point] * glm::vec3(0.375f / num);
                     }
@@ -67,7 +67,8 @@ namespace VCX::Labs::GeometryProcessing {
                 if (! eTwin) {
                     // When there is no twin halfedge (so, e is a boundary edge):
                     // your code here: generate the new vertex and add it into curr_mesh.Positions.
-                    glm::vec3 curr_v = glm::vec3(0.5f) * (prev_mesh.Positions[e->From()] + prev_mesh.Positions[e->To()]);
+                    glm::vec3 curr_v = (prev_mesh.Positions[e->From()] + prev_mesh.Positions[e->To()]) * glm::vec3(0.5f);
+
                     curr_mesh.Positions.push_back(curr_v);
                 } else {
                     // When the twin halfedge exists, we should also record:
@@ -76,8 +77,8 @@ namespace VCX::Labs::GeometryProcessing {
                     //     we have to record twice.
                     newIndices[G.IndexOf(eTwin->Face())][e->TwinEdge()->EdgeLabel()] = curr_mesh.Positions.size();
                     // your code here: generate the new vertex and add it into curr_mesh.Positions.
-                    glm::vec3 curr_v = glm::vec3(0.375f) * (prev_mesh.Positions[e->From()] + prev_mesh.Positions[e->To()])
-                        + glm::vec3(0.125f) * (prev_mesh.Positions[e->OppositeVertex()] + prev_mesh.Positions[e->TwinOppositeVertex()]);
+                    glm::vec3 curr_v = (prev_mesh.Positions[e->From()] + prev_mesh.Positions[e->To()]) * glm::vec3(0.375f) 
+                        + (prev_mesh.Positions[e->OppositeVertex()] + prev_mesh.Positions[e->TwinOppositeVertex()]) * glm::vec3(0.125f);
 
                     curr_mesh.Positions.push_back(curr_v);
                 }
