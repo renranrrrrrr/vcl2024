@@ -29,7 +29,14 @@ uniform vec3 u_WarmColor;
 
 vec3 Shade (vec3 lightDir, vec3 normal) {
     // your code here:
-    return vec3(0);
+    float tmp = 3.0 * dot(lightDir, normal);
+    if(tmp >= 1.0){
+        return u_WarmColor;
+    }
+    else if(tmp <= -1.0){
+        return u_CoolColor;
+    }
+    else return (u_CoolColor + u_WarmColor) / 2.0;
 }
 
 void main() {
