@@ -58,9 +58,17 @@ vec3 GetNormal() {
     vec3 vn = normalize(v_Normal);
 
     // your code here:
-    vec3 bumpNormal = vn;
+    float height = texture(u_HeightMap, v_TexCoord).r;
+    float height_dx = texture(u_HeightMap, v_TexCoord + vec2(1.0 / textureSize(u_HeightMap, 0).x, 0)).r - height;
+    float height_dy = texture(u_HeightMap, v_TexCoord + vec2(0, 1.0 / textureSize(u_HeightMap, 0).y)).r - height;
 
-    return bumpNormal != bumpNormal ? vn : normalize(vn * (1. - u_BumpMappingBlend) + bumpNormal * u_BumpMappingBlend);
+    vec3 tangent = normalize(vec3(1.0, 0.0, height_dx));
+    vec3 bitangent = normalize(vec3(0.0, 1.0, height_dy));
+    vec3 perturbedNormal = normalize(cross(tangent, bitangent));
+
+    vec3 bumpNormal = normalize(mat3(tangent, bitangent, vn) * perturbedNormal);
+
+    return normalize(vn * (1.0 - u_BumpMappingBlend) + bumpNormal * u_BumpMappingBlend);
 }
 
 void main() {

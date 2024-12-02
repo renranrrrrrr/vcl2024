@@ -37,7 +37,7 @@ float Shadow(vec3 pos, vec3 lightPos) {
     vec3 toLight = pos - lightPos;
 
     // your code here: closestDepth = ?
-    float closestDepth = texture(u_ShadowCubeMap, toLight).x * u_FarPlane;
+    float closestDepth = texture(u_ShadowCubeMap, normalize(toLight)).x * u_FarPlane;
     // your code end
 
     float curDepth = length(toLight);
